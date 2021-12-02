@@ -195,6 +195,8 @@ func NewRediStoreWithDB(size int, network, address, password, DB string, keyPair
 	}, keyPairs...)
 }
 
+var DefaultMaxAge = 60 * 20 // 20 minutes seems like a reasonable default
+
 // NewRediStoreWithPool instantiates a RediStore with a *redis.Pool passed in.
 func NewRediStoreWithPool(pool *redis.Pool, keyPairs ...[]byte) (*RediStore, error) {
 	rs := &RediStore{
@@ -205,7 +207,7 @@ func NewRediStoreWithPool(pool *redis.Pool, keyPairs ...[]byte) (*RediStore, err
 			Path:   "/",
 			MaxAge: sessionExpire,
 		},
-		DefaultMaxAge: 60 * 20, // 20 minutes seems like a reasonable default
+		DefaultMaxAge: DefaultMaxAge,
 		maxLength:     4096,
 		keyPrefix:     "session_",
 		serializer:    GobSerializer{},
@@ -252,7 +254,7 @@ func (s *RediStore) New(r *http.Request, name string) (*sessions.Session, error)
 // Save adds a single session to the response.
 func (s *RediStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	// Marked for deletion.
-	if session.Options.MaxAge <= 0 {
+	if session.Options.MaxAge < 0 {
 		if err := s.delete(session); err != nil {
 			return err
 		}
